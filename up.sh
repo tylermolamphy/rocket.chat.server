@@ -86,6 +86,13 @@ if [[ "${PULL}" == "true" ]]; then
   run_compose pull
 fi
 
+# ── Stop nginx (frees port 80 for Traefik) ─────────────────────────
+if systemctl is-active --quiet nginx 2>/dev/null; then
+  log_info "Stopping nginx (port 80 needed by Traefik)..."
+  sudo systemctl stop nginx
+  log_ok "nginx stopped"
+fi
+
 # ── Start stack ─────────────────────────────────────────────────────
 UP_ARGS=("up")
 if [[ "${DETACH}" == "true" ]]; then
