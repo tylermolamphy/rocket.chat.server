@@ -131,6 +131,13 @@ fi
 
 run_compose "${UP_ARGS[@]}"
 
+# ── Sync Site_Url in MongoDB ─────────────────────────────────────────
+# Rocket.Chat stores Site_Url in MongoDB; on first boot it defaults to
+# http://localhost and ignores ROOT_URL env var. Sync it from .env.
+if [[ "${INCLUDE_APP}" == "true" ]]; then
+  sync_site_url
+fi
+
 # ── Tailscale Serve ────────────────────────────────────────────────
 if [[ "${USE_TAILSCALE}" == "true" ]]; then
   log_info "Starting Tailscale serve (https:443 -> localhost:3000)..."
