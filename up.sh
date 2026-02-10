@@ -112,6 +112,17 @@ if [[ "${USE_TAILSCALE}" == "true" ]]; then
   sudo tailscale serve --https=443 --set-path=/rocketchat off 2>/dev/null || true
 fi
 
+# ── Clean up orphan containers (e.g. Traefik from previous runs) ──
+log_info "Removing orphan containers from previous runs..."
+# Use all compose files for cleanup so orphan detection is accurate
+CLEANUP_FILES=("-f" "compose.database.yml")
+[[ -f "${REPO_ROOT}/compose.monitoring.yml" ]] && CLEANUP_FILES+=("-f" "compose.monitoring.yml")
+[[ -f "${REPO_ROOT}/compose.traefik.yml" ]]    && CLEANUP_FILES+=("-f" "compose.traefik.yml")
+[[ -f "${REPO_ROOT}/compose.yml" ]]            && CLEANUP_FILES+=("-f" "compose.yml")
+# Ensure .env exists for traefik compose parsing
+ensure_env_file_for_down
+${COMPOSE_CMD} "${CLEANUP_FILES[@]}" down --remove-orphans 2>/dev/null || true
+
 # ── Start stack ─────────────────────────────────────────────────────
 UP_ARGS=("up")
 if [[ "${DETACH}" == "true" ]]; then
