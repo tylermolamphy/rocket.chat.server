@@ -131,3 +131,11 @@ fi
 # ── Stop stack ──────────────────────────────────────────────────────
 run_compose "${DOWN_ARGS[@]}"
 log_ok "Stack stopped."
+
+# ── Start nginx (serves maintenance page on port 80) ──────────────
+if command -v nginx &>/dev/null; then
+  log_info "Starting nginx for maintenance page..."
+  sudo systemctl start nginx && \
+    log_ok "nginx started (maintenance page on port 80)" || \
+    log_warn "Failed to start nginx"
+fi
