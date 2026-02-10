@@ -110,10 +110,10 @@ DOWN_ARGS=("down")
 
 # ── Tailscale Serve ────────────────────────────────────────────────
 if command -v tailscale &>/dev/null; then
-  log_info "Stopping Tailscale serve (rocketchat)..."
-  sudo tailscale serve --service rocketchat off 2>/dev/null && \
+  log_info "Stopping Tailscale serve (svc:rocketchat)..."
+  sudo tailscale serve --service=svc:rocketchat --https=443 off 2>/dev/null && \
     log_ok "Tailscale serve stopped" || \
-    log_warn "Tailscale serve 'rocketchat' was not running"
+    log_warn "Tailscale serve 'svc:rocketchat' was not running"
 fi
 
 # ── Stop stack ──────────────────────────────────────────────────────
