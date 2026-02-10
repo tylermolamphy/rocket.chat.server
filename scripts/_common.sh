@@ -292,3 +292,46 @@ print_access_urls() {
   fi
   echo ""
 }
+
+# ── Container Restart Summary ───────────────────────────────────────
+# Shows restart counts for running containers. Highlights any that
+# restarted, which may indicate crashes or health check failures.
+print_restart_summary() {
+  local containers total_restarts=0 has_restarts=false
+
+  # Get running container IDs for the current compose project
+  # Use compose directly (not run_compose) to avoid log_info stdout pollution
+  containers=$(${COMPOSE_CMD} "${COMPOSE_FILES[@]}" ps -q 2>/dev/null) || return 0
+  if [[ -z "${containers}" ]]; then
+    return 0
+  fi
+
+  echo ""
+  log_info "Container restart counts since start:"
+
+  local name count
+  while read -r cid; do
+    [[ -z "${cid}" ]] && continue
+    name=$(${CONTAINER_RUNTIME} inspect --format '{{.Name}}' "${cid}" 2>/dev/null | sed 's|^/||') || name="${cid:0:12}"
+    count=$(${CONTAINER_RUNTIME} inspect --format '{{.RestartCount}}' "${cid}" 2>/dev/null) || count="?"
+    if [[ "${count}" =~ ^[0-9]+$ ]]; then
+      total_restarts=$((total_restarts + count))
+      if [[ "${count}" -gt 0 ]]; then
+        has_restarts=true
+        log_warn "  ${name}: ${count} restart(s)"
+      else
+        log_info "  ${name}: ${count}"
+      fi
+    else
+      log_info "  ${name}: ${count}"
+    fi
+  done <<< "${containers}"
+
+  echo ""
+  if [[ "${has_restarts}" == "true" ]]; then
+    log_warn "Total restarts: ${total_restarts} — check logs for crash-looping containers"
+  else
+    log_ok "No container restarts — all stable"
+  fi
+  echo ""
+}
