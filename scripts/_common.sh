@@ -50,15 +50,24 @@ detect_runtime() {
 }
 
 detect_compose() {
-  # Try "docker compose" (v2 plugin) first, then "docker-compose", then "podman-compose"
+  # The compose files use $$ syntax (literal dollar escape) which REQUIRES
+  # docker compose v2 (the CLI plugin). docker-compose v1 (standalone binary)
+  # does not support this and will fail with "Invalid interpolation format".
   if ${CONTAINER_RUNTIME} compose version &>/dev/null 2>&1; then
     COMPOSE_CMD="${CONTAINER_RUNTIME} compose"
-  elif command -v docker-compose &>/dev/null; then
-    COMPOSE_CMD="docker-compose"
   elif command -v podman-compose &>/dev/null; then
     COMPOSE_CMD="podman-compose"
+  elif command -v docker-compose &>/dev/null; then
+    log_error "'docker-compose' (v1) is not supported — the compose files use"
+    log_error "\$\$ escaping which requires 'docker compose' v2 (the CLI plugin)."
+    log_error ""
+    log_error "Install it with:  apt install docker-compose-plugin"
+    log_error "             or:  https://docs.docker.com/compose/install/"
+    exit 1
   else
-    log_error "No compose command found. Install 'docker compose' plugin or 'docker-compose'."
+    log_error "No compose command found. Install the 'docker compose' plugin:"
+    log_error "  apt install docker-compose-plugin"
+    log_error "  https://docs.docker.com/compose/install/"
     exit 1
   fi
 }
