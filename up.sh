@@ -77,6 +77,20 @@ if ! ensure_env_file; then
   exit 1
 fi
 
+# ── Tailscale + Traefik conflict detection ─────────────────────────
+# Tailscale serve binds port 443 for TLS termination. Traefik also
+# wants 0.0.0.0:443. They can't coexist — auto-skip Traefik when
+# tailscale is handling serve (it provides TLS certs automatically).
+USE_TAILSCALE=false
+if command -v tailscale &>/dev/null && tailscale status &>/dev/null; then
+  USE_TAILSCALE=true
+  if [[ "${INCLUDE_TRAEFIK}" == "true" ]]; then
+    log_warn "Tailscale detected — skipping Traefik (both need port 443)"
+    log_warn "Tailscale serve handles TLS automatically for tailnet domains"
+    INCLUDE_TRAEFIK=false
+  fi
+fi
+
 build_compose_files
 print_component_summary "starting"
 
@@ -86,11 +100,16 @@ if [[ "${PULL}" == "true" ]]; then
   run_compose pull
 fi
 
-# ── Stop nginx (frees port 80 for Traefik) ─────────────────────────
+# ── Stop nginx (frees port 80 for stack) ───────────────────────────
 if systemctl is-active --quiet nginx 2>/dev/null; then
-  log_info "Stopping nginx (port 80 needed by Traefik)..."
+  log_info "Stopping nginx (frees port 80)..."
   sudo systemctl stop nginx
   log_ok "nginx stopped"
+fi
+
+# ── Stop tailscale serve (frees port 443 during startup) ──────────
+if [[ "${USE_TAILSCALE}" == "true" ]]; then
+  sudo tailscale serve --https=443 --set-path=/rocketchat off 2>/dev/null || true
 fi
 
 # ── Start stack ─────────────────────────────────────────────────────
@@ -102,12 +121,10 @@ fi
 run_compose "${UP_ARGS[@]}"
 
 # ── Tailscale Serve ────────────────────────────────────────────────
-if command -v tailscale &>/dev/null; then
-  log_info "Starting Tailscale serve (https:443/rocketchat -> localhost:443)..."
-  sudo tailscale serve --bg --https=443 --set-path=/rocketchat https+insecure://localhost:443
-  log_ok "Tailscale serve started (https:443/rocketchat -> localhost:443)"
-else
-  log_warn "tailscale not found — skipping Tailscale serve"
+if [[ "${USE_TAILSCALE}" == "true" ]]; then
+  log_info "Starting Tailscale serve (https:443/rocketchat -> localhost:3000)..."
+  sudo tailscale serve --bg --https=443 --set-path=/rocketchat http://localhost:3000
+  log_ok "Tailscale serve started (https:443/rocketchat -> localhost:3000)"
 fi
 
 if [[ "${DETACH}" == "true" ]]; then

@@ -82,6 +82,14 @@ done
 # ── Preflight ───────────────────────────────────────────────────────
 run_checks
 
+# Auto-skip Traefik when tailscale is present (same logic as up.sh)
+if command -v tailscale &>/dev/null && tailscale status &>/dev/null; then
+  if [[ "${INCLUDE_TRAEFIK}" == "true" ]]; then
+    log_warn "Tailscale detected — skipping Traefik"
+    INCLUDE_TRAEFIK=false
+  fi
+fi
+
 # For 'down', compose.traefik.yml has ${LETSENCRYPT_EMAIL?...} which causes
 # a hard parse error even during teardown. Auto-create .env if needed.
 if [[ "${INCLUDE_TRAEFIK}" == "true" ]]; then
