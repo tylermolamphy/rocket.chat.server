@@ -49,6 +49,26 @@ detect_runtime() {
   fi
 }
 
+install_compose_plugin() {
+  # Attempt to install docker-compose-plugin via apt
+  if command -v apt-get &>/dev/null; then
+    log_info "Installing docker-compose-plugin via apt..."
+    if sudo apt-get update -qq && sudo apt-get install -y -qq --reinstall docker-compose-plugin; then
+      log_ok "docker-compose-plugin installed successfully"
+      return 0
+    else
+      log_error "Failed to install docker-compose-plugin via apt."
+      log_error "You may need to add the Docker apt repository first:"
+      log_error "  https://docs.docker.com/compose/install/"
+      return 1
+    fi
+  else
+    log_error "apt not available — install docker-compose-plugin manually:"
+    log_error "  https://docs.docker.com/compose/install/"
+    return 1
+  fi
+}
+
 detect_compose() {
   # The compose files use $$ syntax (literal dollar escape) which REQUIRES
   # docker compose v2 (the CLI plugin). docker-compose v1 (standalone binary)
@@ -57,18 +77,16 @@ detect_compose() {
     COMPOSE_CMD="${CONTAINER_RUNTIME} compose"
   elif command -v podman-compose &>/dev/null; then
     COMPOSE_CMD="podman-compose"
-  elif command -v docker-compose &>/dev/null; then
-    log_error "'docker-compose' (v1) is not supported — the compose files use"
-    log_error "\$\$ escaping which requires 'docker compose' v2 (the CLI plugin)."
-    log_error ""
-    log_error "Install it with:  apt install docker-compose-plugin"
-    log_error "             or:  https://docs.docker.com/compose/install/"
-    exit 1
   else
-    log_error "No compose command found. Install the 'docker compose' plugin:"
-    log_error "  apt install docker-compose-plugin"
-    log_error "  https://docs.docker.com/compose/install/"
-    exit 1
+    log_warn "'docker compose' v2 plugin not found (required for these compose files)"
+    install_compose_plugin || exit 1
+    # Verify it works after install
+    if ${CONTAINER_RUNTIME} compose version &>/dev/null 2>&1; then
+      COMPOSE_CMD="${CONTAINER_RUNTIME} compose"
+    else
+      log_error "'docker compose' still not available after install — check your Docker setup"
+      exit 1
+    fi
   fi
 }
 
