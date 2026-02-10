@@ -108,12 +108,24 @@ DOWN_ARGS=("down")
 [[ "${REMOVE_ORPHANS}" == "true" ]] && DOWN_ARGS+=("--remove-orphans")
 [[ -n "${TIMEOUT}" ]]               && DOWN_ARGS+=("--timeout" "${TIMEOUT}")
 
-# ── Tailscale Serve ────────────────────────────────────────────────
+# ── Tailscale Serve → Maintenance Page ─────────────────────────────
+MAINTENANCE_DIR="/var/www/html"
+MAINTENANCE_SRC="${REPO_ROOT}/files/maintenance/index.html"
+
 if command -v tailscale &>/dev/null; then
-  log_info "Stopping Tailscale serve (/rocketchat)..."
-  sudo tailscale serve --https=443 --set-path=/rocketchat off 2>/dev/null && \
-    log_ok "Tailscale serve stopped" || \
-    log_warn "Tailscale serve '/rocketchat' was not running"
+  if [[ -f "${MAINTENANCE_SRC}" ]]; then
+    sudo mkdir -p "${MAINTENANCE_DIR}"
+    sudo cp "${MAINTENANCE_SRC}" "${MAINTENANCE_DIR}/index.html"
+    log_info "Switching Tailscale serve to maintenance page..."
+    sudo tailscale serve --bg --https=443 --set-path=/rocketchat "${MAINTENANCE_DIR}" 2>/dev/null && \
+      log_ok "Maintenance page live at /rocketchat" || \
+      log_warn "Failed to switch to maintenance page"
+  else
+    log_info "Stopping Tailscale serve (/rocketchat)..."
+    sudo tailscale serve --https=443 --set-path=/rocketchat off 2>/dev/null && \
+      log_ok "Tailscale serve stopped" || \
+      log_warn "Tailscale serve '/rocketchat' was not running"
+  fi
 fi
 
 # ── Stop stack ──────────────────────────────────────────────────────
