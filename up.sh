@@ -109,7 +109,7 @@ fi
 
 # ── Stop tailscale serve (frees port 443 during startup) ──────────
 if [[ "${USE_TAILSCALE}" == "true" ]]; then
-  sudo tailscale serve --https=443 --set-path=/rocketchat off 2>/dev/null || true
+  sudo tailscale serve --https=443 off 2>/dev/null || true
 fi
 
 # ── Clean up orphan containers (e.g. Traefik from previous runs) ──
@@ -133,9 +133,9 @@ run_compose "${UP_ARGS[@]}"
 
 # ── Tailscale Serve ────────────────────────────────────────────────
 if [[ "${USE_TAILSCALE}" == "true" ]]; then
-  log_info "Starting Tailscale serve (https:443/rocketchat -> localhost:3000)..."
-  sudo tailscale serve --bg --https=443 --set-path=/rocketchat http://localhost:3000
-  log_ok "Tailscale serve started (https:443/rocketchat -> localhost:3000)"
+  log_info "Starting Tailscale serve (https:443 -> localhost:3000)..."
+  sudo tailscale serve --bg --https=443 http://localhost:3000
+  log_ok "Tailscale serve started (https:443 -> localhost:3000)"
 fi
 
 if [[ "${DETACH}" == "true" ]]; then
