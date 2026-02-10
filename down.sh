@@ -116,6 +116,9 @@ DOWN_ARGS=("down")
 [[ "${REMOVE_ORPHANS}" == "true" ]] && DOWN_ARGS+=("--remove-orphans")
 [[ -n "${TIMEOUT}" ]]               && DOWN_ARGS+=("--timeout" "${TIMEOUT}")
 
+# ── Restart summary (before stopping) ─────────────────────────────
+print_restart_summary
+
 # ── Tailscale Serve → Maintenance Page ─────────────────────────────
 MAINTENANCE_DIR="/var/www/html"
 MAINTENANCE_SRC="${REPO_ROOT}/files/maintenance/index.html"

@@ -95,6 +95,9 @@ if [[ "${PULL}" == "true" ]]; then
   run_compose pull
 fi
 
+# ── Restart summary (before restarting) ────────────────────────────
+print_restart_summary
+
 # ── Restart ─────────────────────────────────────────────────────────
 if [[ "${ROLLING}" == "true" ]]; then
   log_info "Rolling restart (recreating containers in-place)..."
