@@ -125,14 +125,14 @@ if command -v tailscale &>/dev/null; then
     sudo mkdir -p "${MAINTENANCE_DIR}"
     sudo cp "${MAINTENANCE_SRC}" "${MAINTENANCE_DIR}/index.html"
     log_info "Switching Tailscale serve to maintenance page..."
-    sudo tailscale serve --bg --https=443 --set-path=/rocketchat "${MAINTENANCE_DIR}" 2>/dev/null && \
-      log_ok "Maintenance page live at /rocketchat" || \
+    sudo tailscale serve --bg --https=443 "${MAINTENANCE_DIR}" 2>/dev/null && \
+      log_ok "Maintenance page live" || \
       log_warn "Failed to switch to maintenance page"
   else
-    log_info "Stopping Tailscale serve (/rocketchat)..."
-    sudo tailscale serve --https=443 --set-path=/rocketchat off 2>/dev/null && \
+    log_info "Stopping Tailscale serve..."
+    sudo tailscale serve --https=443 off 2>/dev/null && \
       log_ok "Tailscale serve stopped" || \
-      log_warn "Tailscale serve '/rocketchat' was not running"
+      log_warn "Tailscale serve was not running"
   fi
 fi
 
