@@ -108,6 +108,14 @@ DOWN_ARGS=("down")
 [[ "${REMOVE_ORPHANS}" == "true" ]] && DOWN_ARGS+=("--remove-orphans")
 [[ -n "${TIMEOUT}" ]]               && DOWN_ARGS+=("--timeout" "${TIMEOUT}")
 
+# ── Tailscale Serve ────────────────────────────────────────────────
+if command -v tailscale &>/dev/null; then
+  log_info "Stopping Tailscale serve (rocketchat)..."
+  sudo tailscale serve --service rocketchat off 2>/dev/null && \
+    log_ok "Tailscale serve stopped" || \
+    log_warn "Tailscale serve 'rocketchat' was not running"
+fi
+
 # ── Stop stack ──────────────────────────────────────────────────────
 run_compose "${DOWN_ARGS[@]}"
 log_ok "Stack stopped."
