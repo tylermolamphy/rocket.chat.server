@@ -96,9 +96,9 @@ run_compose "${UP_ARGS[@]}"
 
 # ── Tailscale Serve ────────────────────────────────────────────────
 if command -v tailscale &>/dev/null; then
-  log_info "Starting Tailscale serve (https:443/rocketchat -> localhost:3000)..."
-  sudo tailscale serve --bg --https=443 --set-path=/rocketchat http://localhost:3000
-  log_ok "Tailscale serve started (https:443/rocketchat -> localhost:3000)"
+  log_info "Starting Tailscale serve (https:443/rocketchat -> localhost:443)..."
+  sudo tailscale serve --bg --https=443 --set-path=/rocketchat https+insecure://localhost:443
+  log_ok "Tailscale serve started (https:443/rocketchat -> localhost:443)"
 else
   log_warn "tailscale not found — skipping Tailscale serve"
 fi
