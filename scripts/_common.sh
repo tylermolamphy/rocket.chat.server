@@ -293,6 +293,72 @@ print_access_urls() {
   echo ""
 }
 
+# ── Sync Site_Url in MongoDB ──────────────────────────────────────────
+# Rocket.Chat stores Site_Url in its settings collection. On first boot
+# it defaults to http://localhost and ignores the ROOT_URL env var.
+# This function waits for MongoDB, then ensures the DB value matches .env.
+sync_site_url() {
+  local root_url mongo_container
+
+  root_url=$(grep -E '^ROOT_URL=' "${REPO_ROOT}/.env" | cut -d= -f2- | tr -d '"' || echo "")
+  if [[ -z "${root_url}" ]]; then
+    return 0
+  fi
+
+  # Find the MongoDB container
+  mongo_container=$(${CONTAINER_RUNTIME} ps --format '{{.Names}}' | grep -E 'mongodb-1$' | head -1)
+  if [[ -z "${mongo_container}" ]]; then
+    log_warn "MongoDB container not found — skipping Site_Url sync"
+    return 0
+  fi
+
+  # Wait for MongoDB to be healthy (up to 60s)
+  log_info "Waiting for MongoDB to be ready..."
+  local i=0
+  while [[ $i -lt 30 ]]; do
+    if ${CONTAINER_RUNTIME} exec "${mongo_container}" mongosh --quiet --eval 'db.runCommand({ping:1})' &>/dev/null; then
+      break
+    fi
+    sleep 2
+    i=$((i + 1))
+  done
+
+  if [[ $i -ge 30 ]]; then
+    log_warn "MongoDB not ready after 60s — skipping Site_Url sync"
+    return 0
+  fi
+
+  # Check current value and update if different
+  local current_url
+  current_url=$(${CONTAINER_RUNTIME} exec "${mongo_container}" mongosh --quiet rocketchat \
+    --eval 'const s = db.rocketchat_settings.findOne({_id:"Site_Url"}); if(s) print(s.value)' 2>&1 \
+    | grep -v 'Warning:' | tr -d '[:space:]') || current_url=""
+
+  if [[ "${current_url}" == "${root_url}" ]]; then
+    log_ok "Site_Url already matches ROOT_URL"
+    return 0
+  fi
+
+  log_info "Syncing Site_Url: ${current_url:-<unset>} → ${root_url}"
+  ${CONTAINER_RUNTIME} exec "${mongo_container}" mongosh --quiet rocketchat --eval "
+    db.rocketchat_settings.updateOne(
+      {_id: 'Site_Url'},
+      {\$set: {value: '${root_url}', env: true, valueSource: 'envValue'}}
+    )
+  " &>/dev/null || true
+
+  # Restart Rocket.Chat to pick up the change
+  local rc_container
+  rc_container=$(${CONTAINER_RUNTIME} ps --format '{{.Names}}' | grep -E 'rocketchat-1$' | head -1)
+  if [[ -n "${rc_container}" ]]; then
+    log_info "Restarting Rocket.Chat to apply Site_Url change..."
+    ${CONTAINER_RUNTIME} restart "${rc_container}" &>/dev/null
+    log_ok "Site_Url synced and Rocket.Chat restarted"
+  else
+    log_ok "Site_Url synced — restart Rocket.Chat to apply"
+  fi
+}
+
 # ── Container Restart Summary ───────────────────────────────────────
 # Shows restart counts for running containers. Highlights any that
 # restarted, which may indicate crashes or health check failures.
