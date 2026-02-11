@@ -141,7 +141,7 @@ fi
 # ── Tailscale Serve ────────────────────────────────────────────────
 if [[ "${USE_TAILSCALE}" == "true" ]]; then
   log_info "Starting Tailscale serve (https:443 -> localhost:3000)..."
-  sudo tailscale serve --bg --https=443 --service=svc:chat http://localhost:3000
+  sudo tailscale serve --bg --service=svc:chat --https=3000 https://localhost:3000
   log_ok "Tailscale serve started (https:443 -> localhost:3000)"
 fi
 
