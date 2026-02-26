@@ -143,6 +143,16 @@ if [[ "${USE_TAILSCALE}" == "true" ]]; then
   log_info "Starting Tailscale serve (https:443 -> localhost:3000)..."
   sudo tailscale serve --bg --service=svc:chat --https=3000 https://localhost:3000
   log_ok "Tailscale serve started (https:443 -> localhost:3000)"
+
+  # Restore all other static Tailscale serve endpoints (launcher, syncthing,
+  # goaccess, librespeed, svc:status) that may have been cleared by the
+  # 'tailscale serve --https=443 off' maintenance-page cleanup above.
+  if systemctl is-enabled --quiet tailscale-services 2>/dev/null; then
+    log_info "Restoring static Tailscale serve endpoints..."
+    sudo systemctl restart tailscale-services && \
+      log_ok "Static Tailscale endpoints restored" || \
+      log_warn "Failed to restart tailscale-services — run: sudo systemctl restart tailscale-services"
+  fi
 fi
 
 if [[ "${DETACH}" == "true" ]]; then
