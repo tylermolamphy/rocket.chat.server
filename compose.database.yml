@@ -146,6 +146,12 @@ services:
       - --mongodb.uri=${MONGODB_URI:-mongodb://mongodb:27017}
       - --collect-all
       - --compatible-mode
+      # Limit $collStats to collections that actually grow with usage.
+      # Running it on all 87 collections (58 of which are empty unused-feature
+      # placeholders) causes repeated slow-query log spam with zero monitoring value.
+      # Revisit this list if new RC features are enabled (uploads, LiveChat,
+      # video calls, etc.) -- see CLAUDE.md for guidance.
+      - --mongodb.collstats-colls=rocketchat.rocketchat_message,rocketchat.rocketchat_cron_history,rocketchat.rocketchat_server_events,rocketchat.rocketchat_sessions,rocketchat.rocketchat_oembed_cache,rocketchat.rocketchat_avatars.chunks,rocketchat.users,rocketchat.rocketchat_room
     logging:
       driver: "journald"
       options:
