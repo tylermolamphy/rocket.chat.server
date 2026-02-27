@@ -134,6 +134,37 @@ Compose files:
 
 Key `.env` values: `DOMAIN`, `ROOT_URL`, `RELEASE`, `GRAFANA_ADMIN_PASSWORD`, `MONGODB_BIND_IP`.
 
+### MongoDB Exporter — `$collStats` Collection List
+
+`mongodb-exporter` is configured with `--mongodb.collstats-colls` to run `$collStats` on a specific list of collections rather than all of them. Running `$collStats` on all 87 collections (58 of which are empty unused-feature placeholders) caused 10–13 slow-query log entries per hour with zero monitoring value.
+
+**Currently monitored collections** (in `compose.database.yml`):
+
+| Collection | Why monitored |
+|---|---|
+| `rocketchat_message` | Core chat data — grows with every message sent |
+| `rocketchat_cron_history` | Largest collection by doc count; grows continuously as jobs run |
+| `rocketchat_server_events` | Audit log; grows with logins and admin actions |
+| `rocketchat_sessions` | Active user sessions |
+| `rocketchat_oembed_cache` | URL preview cache; can balloon silently as users share links |
+| `rocketchat_avatars.chunks` | Binary avatar storage |
+| `users` | User accounts |
+| `rocketchat_room` | Rooms/channels |
+
+**Revisit this list as usage grows.** Add collections to `--mongodb.collstats-colls` in `compose.database.yml` when these features are enabled:
+
+- **More users** → add `rocketchat_subscription`, `rocketchat_message_reads`
+- **File uploads** → add `rocketchat_uploads`, `rocketchat_avatars.files`
+- **LiveChat / Omnichannel** → add `rocketchat_livechat_visitor`, `rocketchat_livechat_inquiry`, `rocketchat_livechat_contact`
+- **Video calls** → add `rocketchat_video_conference`, `rocketchat_media_calls`
+- **Apps / integrations** → add `rocketchat_apps_logs`, `rocketchat_integration_history`
+
+To audit current collection sizes and find new growth candidates:
+```bash
+sudo docker exec rocketchatserver-mongodb-1 mongosh --quiet --norc --eval \
+  'db.getSiblingDB("rocketchat").getCollectionNames().sort().forEach(function(n) { var s = db.getSiblingDB("rocketchat").getCollection(n).stats({scale:1024}); if(s.count > 0) print(n, s.size+"KB", s.count+"docs") })'
+```
+
 ### Quick status check (all containers)
 ```bash
 sudo docker ps -a
