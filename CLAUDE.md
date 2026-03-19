@@ -34,6 +34,15 @@ All apps run in Docker via `docker compose`, each in its own directory under `/r
 Additional UFW rules:
 - `172.18.0.0/16 → port 9100/tcp` — allows Prometheus (on `rocketchatserver_default` bridge) to scrape node-exporter on the host
 
+**fail2ban:** Active on the host, blocking exploit scanners hitting port 80 (launcher nginx). Bans go into the `DOCKER-USER` iptables chain (not INPUT — Docker bypasses UFW entirely). Config lives in `system-config/fail2ban/` in this repo and at `/etc/fail2ban/` on disk.
+
+- **Jail:** `nginx-exploit-scan` — 1-strike ban, 7-day duration, watches `/root/launcher/logs/access.log`
+- **Filter:** matches PHPUnit RCE, `.git`/`.env` enumeration, Docker API probes, Spring Boot actuator, ThinkPHP, JNDI, GPON, webshells, and more (~30 patterns)
+- **Action:** `iptables-docker-user` — custom action inserting into `DOCKER-USER` via an `f2b-nginx-exploit` sub-chain
+
+To check status: `sudo fail2ban-client status nginx-exploit-scan`
+To see banned IPs in iptables: `sudo iptables -n -L f2b-nginx-exploit`
+
 **TLS/HTTPS:** Handled by **Tailscale**, not Traefik. The Rocket.Chat compose stack includes a `compose.traefik.yml` but Traefik is intentionally skipped when Tailscale is active — `up.sh` detects this automatically. Always pass `--no-traefik` when calling `restart.sh` manually.
 
 **Tailscale network:**
