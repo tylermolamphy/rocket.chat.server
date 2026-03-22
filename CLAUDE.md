@@ -73,11 +73,10 @@ All Tailscale serve endpoints are persisted in `/etc/systemd/system/tailscale-se
 
 | Service | Port | Binding | Container |
 |---|---|---|---|
-| Launcher HTTP→HTTPS redirect | 80 | 0.0.0.0 | `launcher` |
 | Launcher app (Tailscale internal) | 4174 | 127.0.0.1 | `launcher` |
-| Rocket.Chat | 3000 | 0.0.0.0 | `rocketchatserver-rocketchat-1` |
+| Rocket.Chat | 3000 | 127.0.0.1 | `rocketchatserver-rocketchat-1` |
 | Uptime Kuma | 3001 | 0.0.0.0 | `uptime-kuma` |
-| RC Metrics (Prometheus scrape) | 9458 | 0.0.0.0 | `rocketchatserver-rocketchat-1` |
+| RC Metrics (Prometheus scrape) | 9458 | 127.0.0.1 | `rocketchatserver-rocketchat-1` |
 | MongoDB | 27017 | 127.0.0.1 | `rocketchatserver-mongodb-1` |
 | NATS | 4222 | 127.0.0.1 | `rocketchatserver-nats-1` |
 | Prometheus | 9000 | 127.0.0.1 | `rocketchatserver-prometheus-1` |
